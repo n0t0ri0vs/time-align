@@ -220,6 +220,18 @@
     .slot.busy-3 { background: rgba(251,191,36,.45); }
     .slot.half-hour { border-bottom-color: rgba(46,50,80,.7); }
 
+    /* ── Slot tooltip ── */
+    #slot-tooltip {
+      position: fixed; z-index: 9999;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 10px; font-size: .75rem; font-weight: 600;
+      pointer-events: none; white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,.35);
+      opacity: 0; transition: opacity .1s;
+    }
+    #slot-tooltip.visible { opacity: 1; }
+
     /* ── Results ── */
     #find-btn {
       display: block; width: 100%;
@@ -287,6 +299,8 @@
     <button id="tz-modal-confirm" data-i18n="modal_confirm">Confirm &amp; continue</button>
   </div>
 </div>
+
+<div id="slot-tooltip" role="tooltip" aria-hidden="true"></div>
 
 <div id="app" aria-hidden="true">
   <header>
@@ -731,6 +745,38 @@
     }
   }
 
+  // ── Slot tooltip ─────────────────────────────────────────────────────
+  const slotTooltip = document.getElementById('slot-tooltip');
+  let tooltipTimer = null;
+
+  function showTooltip(e, text) {
+    clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => {
+      slotTooltip.textContent = text;
+      slotTooltip.classList.add('visible');
+      positionTooltip(e);
+    }, 800);
+  }
+
+  function positionTooltip(e) {
+    const offset = 14;
+    slotTooltip.style.left = (e.clientX + offset) + 'px';
+    slotTooltip.style.top  = (e.clientY + offset) + 'px';
+  }
+
+  function hideTooltip() {
+    clearTimeout(tooltipTimer);
+    slotTooltip.classList.remove('visible');
+  }
+
+  function slotTimeRange(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const endM = m + 30 >= 60 ? m - 30 : m + 30;
+    const endH = m + 30 >= 60 ? h + 1  : h;
+    const pad  = n => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)} – ${pad(endH)}:${pad(endM)}`;
+  }
+
   function renderGrid() {
     const grid = document.getElementById('sched-grid');
     grid.innerHTML = '';
@@ -796,10 +842,13 @@
             isDragging = true;
             dragAction = busySlots[slotKey] ? 'remove' : 'add';
             toggleSlot(dateStr, timeStr);
+            hideTooltip();
           });
-          cell.addEventListener('mouseenter', () => {
+          cell.addEventListener('mouseenter', e => {
             if (isDragging) toggleSlot(dateStr, timeStr);
+            showTooltip(e, slotTimeRange(timeStr));
           });
+          cell.addEventListener('mouseleave', hideTooltip);
         }
 
         grid.appendChild(cell);
