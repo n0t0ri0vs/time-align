@@ -748,33 +748,36 @@
   }
 
   // ── Slot tooltip ─────────────────────────────────────────────────────
-  const slotTooltip = document.getElementById('slot-tooltip');
   let tooltipTimer = null;
+  let tooltipX = 0;
+  let tooltipY = 0;
 
-  function showTooltip(e, text) {
-    clearTimeout(tooltipTimer);
-    tooltipTimer = setTimeout(() => {
-      slotTooltip.textContent = text;
-      slotTooltip.classList.add('visible');
-      positionTooltip(e);
-    }, 800);
+  function getTooltip() {
+    return document.getElementById('slot-tooltip');
   }
 
-  function positionTooltip(e) {
-    const offset = 14;
-    slotTooltip.style.left = (e.clientX + offset) + 'px';
-    slotTooltip.style.top  = (e.clientY + offset) + 'px';
+  function showTooltip(text) {
+    const tip = getTooltip();
+    if (!tip) return;
+    clearTimeout(tooltipTimer);
+    tooltipTimer = setTimeout(() => {
+      tip.textContent = text;
+      tip.style.left = (tooltipX + 14) + 'px';
+      tip.style.top  = (tooltipY + 14) + 'px';
+      tip.classList.add('visible');
+    }, 800);
   }
 
   function hideTooltip() {
     clearTimeout(tooltipTimer);
-    slotTooltip.classList.remove('visible');
+    const tip = getTooltip();
+    if (tip) tip.classList.remove('visible');
   }
 
   function slotTimeRange(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
-    const endM = m + 30 >= 60 ? m - 30 : m + 30;
-    const endH = m + 30 >= 60 ? h + 1  : h;
+    const endM = m + 30 >= 60 ? 0  : m + 30;
+    const endH = m + 30 >= 60 ? h + 1 : h;
     const pad  = n => String(n).padStart(2, '0');
     return `${pad(h)}:${pad(m)} – ${pad(endH)}:${pad(endM)}`;
   }
@@ -837,7 +840,11 @@
             }
           }
           cell.className = 'slot' + (busyClass ? ` ${busyClass} busy` : '');
-          if (busyClass) cell.textContent = 'Busy';
+          if (busyClass) {
+            const lbl = document.createElement('span');
+            lbl.textContent = 'Busy';
+            cell.appendChild(lbl);
+          }
           if (ti % 2 !== 0) cell.classList.add('half-hour');
 
           cell.addEventListener('mousedown', e => {
@@ -848,8 +855,14 @@
             hideTooltip();
           });
           cell.addEventListener('mouseenter', e => {
-            if (isDragging) toggleSlot(dateStr, timeStr);
-            showTooltip(e, slotTimeRange(timeStr));
+            if (isDragging) { toggleSlot(dateStr, timeStr); return; }
+            tooltipX = e.clientX;
+            tooltipY = e.clientY;
+            showTooltip(slotTimeRange(timeStr));
+          });
+          cell.addEventListener('mousemove', e => {
+            tooltipX = e.clientX;
+            tooltipY = e.clientY;
           });
           cell.addEventListener('mouseleave', hideTooltip);
         }
