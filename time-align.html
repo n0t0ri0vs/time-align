@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- SECURITY: replace 'unsafe-inline' in script-src with 'sha256-<hash>' of the inline script block before public release. Hash must be recomputed after every edit to the script. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'">
   <title>TimeAlign</title>
   <style>
@@ -663,7 +664,7 @@
       nameInput.type = 'text';
       nameInput.value = p.name;
       nameInput.placeholder = idx === 0 ? t('p0_label') : `${t('participant_label')} ${idx + 1}`;
-      nameInput.addEventListener('input', e => { participants[idx].name = escStr(e.target.value); });
+      nameInput.addEventListener('input', e => { participants[idx].name = e.target.value; });
       nameWrap.appendChild(nameLbl);
       nameWrap.appendChild(nameInput);
 
@@ -979,15 +980,20 @@
       else                   { badgeClass = 'badge-ok';   badgeText = t('badge_ok');   }
 
       // Build time-per-participant strings
-      const timeParts = participants.map((p, i) => {
+      // displayParts: raw names, safe for textContent insertion
+      // copyParts: HTML-escaped names, for clipboard concatenation
+      const slotData = participants.map((p, i) => {
         const slotInP = slotInUserTz.setZone(p.tz);
         const name = p.name || (i === 0 ? t('p0_label') : `${t('participant_label')} ${i + 1}`);
         const timeFormatted = slotInP.toFormat('HH:mm');
         const abbr = tzAbbr(slotInP);
-        return `${timeFormatted} ${abbr} (${escStr(name)})`;
+        return {
+          display: `${timeFormatted} ${abbr} (${name})`,
+          copy:    `${timeFormatted} ${abbr} (${escStr(name)})`,
+        };
       });
 
-      const copyText = `${dateLabel} · ${timeParts.join(' / ')}`;
+      const copyText = `${dateLabel} · ${slotData.map(d => d.copy).join(' / ')}`;
 
       const item = document.createElement('div');
       item.className = 'result-item';
@@ -1002,9 +1008,9 @@
 
       const timesEl = document.createElement('div');
       timesEl.className = 'result-times';
-      timeParts.forEach(part => {
+      slotData.forEach(({ display }) => {
         const line = document.createElement('div');
-        line.textContent = part;
+        line.textContent = display;
         timesEl.appendChild(line);
       });
       info.appendChild(timesEl);
