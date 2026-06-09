@@ -5,8 +5,1071 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'">
   <title>TimeAlign</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #4f7cff;
+      --accent2: #7c4fff;
+      --text: #e8eaf6;
+      --text2: #8b90b0;
+      --success: #34d399;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --radius: 8px;
+      --p0: #4f7cff;
+      --p1: #f87171;
+      --p2: #34d399;
+      --p3: #fbbf24;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ── Modal overlay ── */
+    #tz-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #tz-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 420px;
+      width: 90%;
+    }
+    #tz-modal h2 { font-size: 1.1rem; margin-bottom: 8px; }
+    #tz-modal p { color: var(--text2); margin-bottom: 20px; font-size: .9rem; line-height: 1.5; }
+    #tz-modal select {
+      width: 100%; padding: 10px 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: .9rem; margin-bottom: 20px; appearance: none;
+    }
+    #tz-modal button {
+      width: 100%; padding: 12px;
+      background: var(--accent); border: none;
+      border-radius: var(--radius); color: #fff;
+      font-size: .95rem; font-weight: 600; cursor: pointer;
+    }
+    #tz-modal button:hover { background: #3d68e8; }
+
+    /* ── App shell ── */
+    #app { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .logo { font-size: 1.2rem; font-weight: 700; letter-spacing: -.3px; }
+    .logo span { color: var(--accent); }
+
+    .lang-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 14px;
+      color: var(--text); cursor: pointer; font-size: .8rem; font-weight: 600;
+    }
+    .lang-btn:hover { border-color: var(--accent); }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+    .tab-btn {
+      padding: 8px 20px; border: none;
+      background: transparent; color: var(--text2);
+      border-radius: var(--radius); cursor: pointer;
+      font-size: .9rem; font-weight: 500; border-bottom: 2px solid transparent;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Cards / sections ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: .8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--text2); margin-bottom: 16px;
+    }
+
+    /* ── Form controls ── */
+    label { display: block; font-size: .8rem; color: var(--text2); margin-bottom: 4px; }
+    input[type="text"], input[type="time"], input[type="date"], select {
+      width: 100%; padding: 9px 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-size: .88rem; appearance: none;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+    .row { display: grid; gap: 12px; }
+    .row-2 { grid-template-columns: 1fr 1fr; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .row-4 { grid-template-columns: 1fr 1fr 1fr auto; align-items: end; }
+
+    /* ── Participant cards ── */
+    .participant-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .participant-card .color-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block; margin-right: 6px;
+      vertical-align: middle;
+    }
+    .participant-label {
+      font-size: .85rem; font-weight: 600; margin-bottom: 12px;
+    }
+    .remove-btn {
+      position: absolute; top: 12px; right: 12px;
+      background: none; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text2);
+      width: 24px; height: 24px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+    #add-participant-btn {
+      background: transparent; border: 1px dashed var(--border);
+      border-radius: var(--radius); color: var(--text2);
+      padding: 10px; width: 100%; cursor: pointer; font-size: .88rem;
+      margin-top: 4px;
+    }
+    #add-participant-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Grid ── */
+    .grid-nav {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .grid-nav button {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      padding: 6px 12px; cursor: pointer; font-size: .85rem;
+    }
+    .grid-nav button:hover { border-color: var(--accent); }
+    .grid-nav .week-label { font-weight: 600; }
+
+    .grid-participant-tabs {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .gpt-btn {
+      padding: 5px 12px; border-radius: 20px;
+      border: 1px solid transparent; cursor: pointer;
+      font-size: .8rem; font-weight: 500;
+      opacity: .5; transition: opacity .15s;
+    }
+    .gpt-btn.active { opacity: 1; border-color: currentColor; }
+
+    .grid-wrapper {
+      overflow-x: auto;
+    }
+    .sched-grid {
+      display: grid;
+      grid-template-columns: 52px repeat(5, 1fr);
+      min-width: 520px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .grid-header {
+      background: var(--surface2);
+      padding: 8px 4px; text-align: center;
+      font-size: .75rem; font-weight: 600; color: var(--text2);
+      border-bottom: 1px solid var(--border);
+    }
+    .grid-header.today { color: var(--accent); }
+    .time-label {
+      font-size: .65rem; color: var(--text2);
+      padding: 0 4px; display: flex; align-items: center;
+      justify-content: flex-end; border-right: 1px solid var(--border);
+      height: 20px;
+    }
+    .slot {
+      height: 20px;
+      border-bottom: 1px solid rgba(46,50,80,.4);
+      border-right: 1px solid rgba(46,50,80,.3);
+      cursor: pointer; position: relative;
+      transition: background .08s;
+    }
+    .slot:last-child { border-right: none; }
+    .slot.unavailable { background: rgba(0,0,0,.25); cursor: default; }
+    .slot.busy-0 { background: rgba(79,124,255,.45); }
+    .slot.busy-1 { background: rgba(248,113,113,.45); }
+    .slot.busy-2 { background: rgba(52,211,153,.45); }
+    .slot.busy-3 { background: rgba(251,191,36,.45); }
+    .slot.half-hour { border-bottom-color: rgba(46,50,80,.7); }
+
+    /* ── Results ── */
+    #find-btn {
+      display: block; width: 100%;
+      padding: 13px; margin-top: 4px;
+      background: var(--accent); border: none;
+      border-radius: var(--radius); color: #fff;
+      font-size: .95rem; font-weight: 600; cursor: pointer;
+    }
+    #find-btn:hover { background: #3d68e8; }
+
+    .result-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 12px;
+    }
+    .result-info { flex: 1; }
+    .result-day { font-weight: 600; margin-bottom: 4px; }
+    .result-times { font-size: .82rem; color: var(--text2); line-height: 1.7; }
+    .badge {
+      padding: 3px 9px; border-radius: 20px;
+      font-size: .72rem; font-weight: 700; white-space: nowrap;
+    }
+    .badge-best { background: rgba(52,211,153,.2); color: var(--success); }
+    .badge-good { background: rgba(79,124,255,.2); color: var(--accent); }
+    .badge-ok   { background: rgba(251,191,36,.2); color: var(--warn); }
+    .copy-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text2);
+      padding: 6px 12px; cursor: pointer; font-size: .78rem; white-space: nowrap;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+    #results-area { margin-top: 16px; }
+    #results-empty { color: var(--text2); text-align: center; padding: 24px 0; font-size: .9rem; }
+
+    /* ── Tab 2 Convert ── */
+    .convert-output {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px; text-align: center; margin-top: 16px;
+    }
+    .convert-result { font-size: 2.2rem; font-weight: 700; letter-spacing: -.5px; }
+    .convert-note { color: var(--warn); margin-top: 8px; font-size: .85rem; }
+
+    @media (max-width: 600px) {
+      .row-3, .row-4 { grid-template-columns: 1fr 1fr; }
+      .row-4 { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-  <!-- TimeAlign v0.0.0 — scaffold only -->
+
+<!-- Timezone confirmation modal -->
+<div id="tz-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tz-modal-title">
+  <div id="tz-modal">
+    <h2 id="tz-modal-title" data-i18n="modal_title">Confirm your timezone</h2>
+    <p data-i18n="modal_body">We detected your timezone below. Please confirm or change it before continuing.</p>
+    <select id="tz-modal-select" aria-label="Your timezone"></select>
+    <button id="tz-modal-confirm" data-i18n="modal_confirm">Confirm &amp; continue</button>
+  </div>
+</div>
+
+<div id="app" aria-hidden="true">
+  <header>
+    <div class="logo">Time<span>Align</span></div>
+    <button class="lang-btn" id="lang-toggle" aria-label="Toggle language">ES</button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true"  data-tab="find"    data-i18n="tab_find">Find slot</button>
+    <button class="tab-btn"        role="tab" aria-selected="false" data-tab="convert" data-i18n="tab_convert">Convert time</button>
+  </nav>
+
+  <!-- ═══════════════ TAB 1 — FIND SLOT ═══════════════ -->
+  <div id="panel-find" class="tab-panel active" role="tabpanel">
+
+    <!-- Participants -->
+    <div class="card">
+      <div class="card-title" data-i18n="participants_title">Participants</div>
+      <div id="participants-list"></div>
+      <button id="add-participant-btn" data-i18n="add_participant">+ Add participant</button>
+    </div>
+
+    <!-- Busy-slot grid -->
+    <div class="card">
+      <div class="card-title" data-i18n="grid_title">Mark busy slots</div>
+      <div class="grid-nav">
+        <button id="prev-week" aria-label="Previous week">&#8592;</button>
+        <span class="week-label" id="week-label"></span>
+        <button id="next-week" aria-label="Next week">&#8594;</button>
+      </div>
+      <div class="grid-participant-tabs" id="grid-participant-tabs"></div>
+      <div class="grid-wrapper">
+        <div class="sched-grid" id="sched-grid"></div>
+      </div>
+    </div>
+
+    <!-- Find button + results -->
+    <button id="find-btn" data-i18n="find_btn">Find available slots</button>
+    <div id="results-area">
+      <p id="results-empty" data-i18n="results_empty">Configure participants and press "Find available slots".</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════ TAB 2 — CONVERT TIME ═══════════════ -->
+  <div id="panel-convert" class="tab-panel" role="tabpanel">
+    <div class="card">
+      <div class="card-title" data-i18n="convert_title">Convert time</div>
+      <div class="row row-2" style="margin-bottom:12px">
+        <div>
+          <label data-i18n="convert_src_tz">Source timezone</label>
+          <select id="conv-src-tz"></select>
+        </div>
+        <div>
+          <label data-i18n="convert_tgt_tz">Target timezone</label>
+          <select id="conv-tgt-tz"></select>
+        </div>
+      </div>
+      <div class="row row-2">
+        <div>
+          <label data-i18n="convert_date">Date</label>
+          <input type="date" id="conv-date">
+        </div>
+        <div>
+          <label data-i18n="convert_time">Time</label>
+          <input type="time" id="conv-time" value="09:00">
+        </div>
+      </div>
+      <div class="convert-output" id="convert-output" style="display:none">
+        <div class="convert-result" id="conv-result"></div>
+        <div class="convert-note"  id="conv-note"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.5.0/build/global/luxon.min.js"
+        integrity="sha384-CU0J6nu6GO5gWB5IqOOhPQsG0LKyjpotF5Gw502R+0zbkzKHjDWc6FKSZsNTJfLX"
+        crossorigin="anonymous"></script>
+<script>
+(function () {
+  'use strict';
+
+  const { DateTime, Interval } = luxon;
+
+  // ── i18n ────────────────────────────────────────────────────────────
+  const STRINGS = {
+    en: {
+      modal_title:     'Confirm your timezone',
+      modal_body:      'We detected your timezone below. Please confirm or change it before continuing.',
+      modal_confirm:   'Confirm & continue',
+      tab_find:        'Find slot',
+      tab_convert:     'Convert time',
+      participants_title: 'Participants',
+      add_participant: '+ Add participant',
+      grid_title:      'Mark busy slots',
+      find_btn:        'Find available slots',
+      results_empty:   'Configure participants and press "Find available slots".',
+      convert_title:   'Convert time',
+      convert_src_tz:  'Source timezone',
+      convert_tgt_tz:  'Target timezone',
+      convert_date:    'Date',
+      convert_time:    'Time',
+      p0_label:        'You',
+      participant_label: 'Participant',
+      window_from:     'Window from',
+      window_to:       'Window to',
+      name_label:      'Name',
+      timezone_label:  'Timezone',
+      next_day:        '(next day)',
+      prev_day:        '(previous day)',
+      same_day:        '',
+      badge_best:      'Best',
+      badge_good:      'Good',
+      badge_ok:        'Ok',
+      copy:            'Copy',
+      copied:          'Copied!',
+      no_slots:        'No available slots found for this week. Try another week or adjust schedules.',
+      days_short:      ['Mon','Tue','Wed','Thu','Fri'],
+      days_long:       ['Monday','Tuesday','Wednesday','Thursday','Friday'],
+      months:          ['January','February','March','April','May','June','July','August','September','October','November','December'],
+    },
+    es: {
+      modal_title:     'Confirma tu zona horaria',
+      modal_body:      'Hemos detectado tu zona horaria. Por favor confírmala o cámbiala antes de continuar.',
+      modal_confirm:   'Confirmar y continuar',
+      tab_find:        'Buscar hueco',
+      tab_convert:     'Convertir hora',
+      participants_title: 'Participantes',
+      add_participant: '+ Añadir participante',
+      grid_title:      'Marcar franjas ocupadas',
+      find_btn:        'Buscar huecos disponibles',
+      results_empty:   'Configura los participantes y pulsa "Buscar huecos disponibles".',
+      convert_title:   'Convertir hora',
+      convert_src_tz:  'Zona horaria origen',
+      convert_tgt_tz:  'Zona horaria destino',
+      convert_date:    'Fecha',
+      convert_time:    'Hora',
+      p0_label:        'Tú',
+      participant_label: 'Participante',
+      window_from:     'Ventana desde',
+      window_to:       'Ventana hasta',
+      name_label:      'Nombre',
+      timezone_label:  'Zona horaria',
+      next_day:        '(día siguiente)',
+      prev_day:        '(día anterior)',
+      same_day:        '',
+      badge_best:      'Mejor',
+      badge_good:      'Bueno',
+      badge_ok:        'Ok',
+      copy:            'Copiar',
+      copied:          '¡Copiado!',
+      no_slots:        'No hay huecos disponibles esta semana. Prueba otra semana o ajusta los horarios.',
+      days_short:      ['Lun','Mar','Mié','Jue','Vie'],
+      days_long:       ['Lunes','Martes','Miércoles','Jueves','Viernes'],
+      months:          ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
+    },
+  };
+
+  let lang = 'en';
+  function t(key) { return (STRINGS[lang][key] || STRINGS.en[key] || key); }
+
+  function applyI18n() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      el.textContent = t(key);
+    });
+  }
+
+  // ── Timezone list ────────────────────────────────────────────────────
+  const TIMEZONES = [
+    { value: 'Europe/London',        label: 'London (GMT/BST)' },
+    { value: 'Europe/Madrid',        label: 'Madrid (CET/CEST)' },
+    { value: 'Europe/Paris',         label: 'Paris (CET/CEST)' },
+    { value: 'Europe/Berlin',        label: 'Berlin (CET/CEST)' },
+    { value: 'Asia/Dubai',           label: 'Dubai (GST)' },
+    { value: 'Asia/Riyadh',          label: 'Riyadh (AST)' },
+    { value: 'Asia/Kolkata',         label: 'Kolkata (IST)' },
+    { value: 'Asia/Singapore',       label: 'Singapore (SGT)' },
+    { value: 'Asia/Shanghai',        label: 'Shanghai (CST)' },
+    { value: 'Asia/Tokyo',           label: 'Tokyo (JST)' },
+    { value: 'Australia/Sydney',     label: 'Sydney (AEST/AEDT)' },
+    { value: 'America/New_York',     label: 'New York (ET)' },
+    { value: 'America/Chicago',      label: 'Chicago (CT)' },
+    { value: 'America/Denver',       label: 'Denver (MT)' },
+    { value: 'America/Los_Angeles',  label: 'Los Angeles (PT)' },
+    { value: 'America/Sao_Paulo',    label: 'São Paulo (BRT)' },
+    { value: 'UTC',                  label: 'UTC' },
+  ];
+
+  function populateSelect(sel, selectedValue) {
+    sel.innerHTML = '';
+    TIMEZONES.forEach(tz => {
+      const opt = document.createElement('option');
+      opt.value = tz.value;
+      opt.textContent = tz.label;
+      if (tz.value === selectedValue) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  // ── Participant colors ───────────────────────────────────────────────
+  const COLORS = ['#4f7cff','#f87171','#34d399','#fbbf24'];
+
+  // ── State ────────────────────────────────────────────────────────────
+  let confirmedTz = 'UTC';
+  let participants = [];   // [{name,tz,windowFrom,windowTo}]
+  let busySlots   = {};    // { "pIdx|YYYY-MM-DD|HH:mm": true }
+  let currentWeekStart = null;  // Monday of current week
+  let activeParticipant = 0;    // which participant we're marking for
+  let isDragging = false;
+  let dragAction = null;  // 'add' or 'remove'
+
+  // ── Timezone modal ───────────────────────────────────────────────────
+  function initModal() {
+    const overlay = document.getElementById('tz-modal-overlay');
+    const sel     = document.getElementById('tz-modal-select');
+    const btn     = document.getElementById('tz-modal-confirm');
+    const app     = document.getElementById('app');
+
+    const detected = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const matchedTz = TIMEZONES.find(tz => tz.value === detected)
+      ? detected
+      : 'UTC';
+
+    populateSelect(sel, matchedTz);
+
+    btn.addEventListener('click', () => {
+      confirmedTz = sel.value;
+      overlay.style.display = 'none';
+      app.removeAttribute('aria-hidden');
+      initApp();
+    });
+  }
+
+  // ── Date helpers ─────────────────────────────────────────────────────
+  const GRID_START = DateTime.fromISO('2026-06-01').startOf('week');  // Monday 1 Jun 2026
+  const GRID_END   = DateTime.fromISO('2026-12-31');
+
+  function mondayOf(dt) {
+    return dt.startOf('week');
+  }
+
+  function currentMonday() {
+    const today = DateTime.now();
+    if (today < GRID_START) return GRID_START;
+    if (today > GRID_END)   return mondayOf(GRID_END);
+    return mondayOf(today);
+  }
+
+  function weekDates(monday) {
+    return [0,1,2,3,4].map(d => monday.plus({ days: d }));
+  }
+
+  // ── App init ─────────────────────────────────────────────────────────
+  function initApp() {
+    currentWeekStart = currentMonday();
+
+    // Default participant 0 (the user)
+    participants = [{
+      name: '',
+      tz:   confirmedTz,
+      windowFrom: '09:00',
+      windowTo:   '18:00',
+    }];
+
+    renderParticipants();
+    renderGridParticipantTabs();
+    renderGrid();
+    renderConvertSelects();
+    setConvertDate();
+
+    document.getElementById('add-participant-btn').addEventListener('click', addParticipant);
+    document.getElementById('prev-week').addEventListener('click', () => {
+      const prev = currentWeekStart.minus({ weeks: 1 });
+      if (prev >= GRID_START) { currentWeekStart = prev; renderGrid(); }
+    });
+    document.getElementById('next-week').addEventListener('click', () => {
+      const next = currentWeekStart.plus({ weeks: 1 });
+      if (next <= mondayOf(GRID_END)) { currentWeekStart = next; renderGrid(); }
+    });
+    document.getElementById('find-btn').addEventListener('click', findSlots);
+
+    // Convert tab live updates
+    ['conv-src-tz','conv-tgt-tz','conv-date','conv-time'].forEach(id => {
+      document.getElementById(id).addEventListener('change', updateConvert);
+    });
+    document.getElementById('conv-time').addEventListener('input', updateConvert);
+  }
+
+  // ── Participants ─────────────────────────────────────────────────────
+  function addParticipant() {
+    if (participants.length >= 4) return;
+    participants.push({ name: '', tz: confirmedTz, windowFrom: '09:00', windowTo: '18:00' });
+    renderParticipants();
+    renderGridParticipantTabs();
+    renderGrid();
+  }
+
+  function removeParticipant(idx) {
+    if (participants.length <= 1) return;
+    participants.splice(idx, 1);
+    // Remove busy slots for this participant and re-index higher ones
+    const newBusy = {};
+    Object.keys(busySlots).forEach(key => {
+      const parts = key.split('|');
+      const pIdx = parseInt(parts[0], 10);
+      if (pIdx < idx) {
+        newBusy[key] = true;
+      } else if (pIdx > idx) {
+        newBusy[`${pIdx - 1}|${parts[1]}|${parts[2]}`] = true;
+      }
+    });
+    busySlots = newBusy;
+    if (activeParticipant >= participants.length) activeParticipant = participants.length - 1;
+    renderParticipants();
+    renderGridParticipantTabs();
+    renderGrid();
+  }
+
+  function renderParticipants() {
+    const list = document.getElementById('participants-list');
+    list.innerHTML = '';
+
+    participants.forEach((p, idx) => {
+      const card = document.createElement('div');
+      card.className = 'participant-card';
+
+      const dot = document.createElement('span');
+      dot.className = 'color-dot';
+      dot.style.background = COLORS[idx];
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'participant-label';
+      labelEl.appendChild(dot);
+
+      const labelText = document.createTextNode(idx === 0 ? t('p0_label') : `${t('participant_label')} ${idx + 1}`);
+      labelEl.appendChild(labelText);
+      card.appendChild(labelEl);
+
+      if (idx > 0) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', 'Remove participant');
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', () => removeParticipant(idx));
+        card.appendChild(removeBtn);
+      }
+
+      // Name + Timezone row
+      const row1 = document.createElement('div');
+      row1.className = 'row row-2';
+      row1.style.marginBottom = '10px';
+
+      const nameWrap = document.createElement('div');
+      const nameLbl = document.createElement('label');
+      nameLbl.textContent = t('name_label');
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.value = p.name;
+      nameInput.placeholder = idx === 0 ? t('p0_label') : `${t('participant_label')} ${idx + 1}`;
+      nameInput.addEventListener('input', e => { participants[idx].name = escStr(e.target.value); });
+      nameWrap.appendChild(nameLbl);
+      nameWrap.appendChild(nameInput);
+
+      const tzWrap = document.createElement('div');
+      const tzLbl = document.createElement('label');
+      tzLbl.textContent = t('timezone_label');
+      const tzSel = document.createElement('select');
+      populateSelect(tzSel, p.tz);
+      tzSel.addEventListener('change', e => {
+        participants[idx].tz = e.target.value;
+        renderGrid();
+      });
+      tzWrap.appendChild(tzLbl);
+      tzWrap.appendChild(tzSel);
+
+      row1.appendChild(nameWrap);
+      row1.appendChild(tzWrap);
+      card.appendChild(row1);
+
+      // Meeting window (user only)
+      if (idx === 0) {
+        const row2 = document.createElement('div');
+        row2.className = 'row row-2';
+
+        const fromWrap = document.createElement('div');
+        const fromLbl = document.createElement('label');
+        fromLbl.textContent = t('window_from');
+        const fromInput = document.createElement('input');
+        fromInput.type = 'time';
+        fromInput.value = p.windowFrom;
+        fromInput.addEventListener('change', e => { participants[0].windowFrom = e.target.value; });
+        fromWrap.appendChild(fromLbl);
+        fromWrap.appendChild(fromInput);
+
+        const toWrap = document.createElement('div');
+        const toLbl = document.createElement('label');
+        toLbl.textContent = t('window_to');
+        const toInput = document.createElement('input');
+        toInput.type = 'time';
+        toInput.value = p.windowTo;
+        toInput.addEventListener('change', e => { participants[0].windowTo = e.target.value; });
+        toWrap.appendChild(toLbl);
+        toWrap.appendChild(toInput);
+
+        row2.appendChild(fromWrap);
+        row2.appendChild(toWrap);
+        card.appendChild(row2);
+      }
+
+      list.appendChild(card);
+    });
+
+    const addBtn = document.getElementById('add-participant-btn');
+    addBtn.style.display = participants.length >= 4 ? 'none' : 'block';
+    addBtn.textContent = t('add_participant');
+  }
+
+  // ── Grid participant tabs ─────────────────────────────────────────────
+  function renderGridParticipantTabs() {
+    const container = document.getElementById('grid-participant-tabs');
+    container.innerHTML = '';
+    participants.forEach((p, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'gpt-btn' + (idx === activeParticipant ? ' active' : '');
+      btn.style.color = COLORS[idx];
+      const name = p.name || (idx === 0 ? t('p0_label') : `${t('participant_label')} ${idx + 1}`);
+      btn.textContent = name;
+      btn.addEventListener('click', () => {
+        activeParticipant = idx;
+        renderGridParticipantTabs();
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  // ── Grid ─────────────────────────────────────────────────────────────
+  const TIME_SLOTS = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      TIME_SLOTS.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+    }
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('sched-grid');
+    grid.innerHTML = '';
+
+    const dates = weekDates(currentWeekStart);
+    const today = DateTime.now().toISODate();
+    const daysShort = t('days_short');
+    const months    = t('months');
+
+    // Update week label
+    const endDate = dates[4];
+    const startFmt = `${currentWeekStart.day} ${months[currentWeekStart.month - 1]}`;
+    const endFmt   = `${endDate.day} ${months[endDate.month - 1]} ${endDate.year}`;
+    const wl = document.getElementById('week-label');
+    wl.textContent = `${startFmt} – ${endFmt}`;
+
+    // Header row: empty corner + 5 day headers
+    const corner = document.createElement('div');
+    corner.className = 'grid-header';
+    grid.appendChild(corner);
+
+    dates.forEach((dt, di) => {
+      const hdr = document.createElement('div');
+      hdr.className = 'grid-header' + (dt.toISODate() === today ? ' today' : '');
+      const dayName = daysShort[di];
+      const dayNum  = dt.day;
+      hdr.textContent = `${dayName} ${dayNum}`;
+      grid.appendChild(hdr);
+    });
+
+    // For each 30-min slot row
+    TIME_SLOTS.forEach((timeStr, ti) => {
+      // Time label
+      const lbl = document.createElement('div');
+      lbl.className = 'time-label';
+      lbl.textContent = ti % 2 === 0 ? timeStr : '';
+      grid.appendChild(lbl);
+
+      // 5 day cells
+      dates.forEach((dt, di) => {
+        const cell = document.createElement('div');
+        const dateStr = dt.toISODate();
+        const slotKey = `${activeParticipant}|${dateStr}|${timeStr}`;
+
+        // Determine if slot is within any participant's working window
+        const available = isSlotAvailableForAny(dt, timeStr);
+        if (!available) {
+          cell.className = 'slot unavailable';
+        } else {
+          // Show busy markings for all participants
+          let busyClass = '';
+          for (let pi = participants.length - 1; pi >= 0; pi--) {
+            if (busySlots[`${pi}|${dateStr}|${timeStr}`]) {
+              busyClass = `busy-${pi}`;
+              break;
+            }
+          }
+          cell.className = 'slot' + (busyClass ? ` ${busyClass}` : '');
+          if (ti % 2 !== 0) cell.classList.add('half-hour');
+
+          cell.addEventListener('mousedown', e => {
+            e.preventDefault();
+            isDragging = true;
+            dragAction = busySlots[slotKey] ? 'remove' : 'add';
+            toggleSlot(dateStr, timeStr);
+          });
+          cell.addEventListener('mouseenter', () => {
+            if (isDragging) toggleSlot(dateStr, timeStr);
+          });
+        }
+
+        grid.appendChild(cell);
+      });
+    });
+
+    document.addEventListener('mouseup', () => { isDragging = false; dragAction = null; }, { once: false });
+  }
+
+  function isSlotAvailableForAny(dt, timeStr) {
+    return participants.some(p => isWithinWindow(dt, timeStr, p.tz, '09:00', '18:00'));
+  }
+
+  function isWithinWindow(dt, timeStr, tz, from, to) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const [fh, fm] = from.split(':').map(Number);
+    const [th, tm] = to.split(':').map(Number);
+    const slotMins = h * 60 + m;
+    const fromMins = fh * 60 + fm;
+    const toMins   = th * 60 + tm - 30; // last 30-min slot starts 30 min before end
+    // Convert grid local time (user tz) to participant's tz
+    const userTz = participants[0].tz;
+    const slotDt = DateTime.fromObject(
+      { year: dt.year, month: dt.month, day: dt.day, hour: h, minute: m },
+      { zone: userTz }
+    ).setZone(tz);
+    const slotMinsInParticipantTz = slotDt.hour * 60 + slotDt.minute;
+    return slotMinsInParticipantTz >= fromMins && slotMinsInParticipantTz <= toMins;
+  }
+
+  function toggleSlot(dateStr, timeStr) {
+    const key = `${activeParticipant}|${dateStr}|${timeStr}`;
+    if (dragAction === 'add') {
+      busySlots[key] = true;
+    } else {
+      delete busySlots[key];
+    }
+    // Re-render only the affected cell for performance
+    renderGrid();
+  }
+
+  // ── Slot calculation ─────────────────────────────────────────────────
+  function findSlots() {
+    const resultsArea = document.getElementById('results-area');
+    resultsArea.innerHTML = '';
+
+    const dates = weekDates(currentWeekStart);
+    const userP = participants[0];
+    const results = [];
+
+    dates.forEach(dt => {
+      const dateStr = dt.toISODate();
+      TIME_SLOTS.forEach(timeStr => {
+        const [h, m] = timeStr.split(':').map(Number);
+
+        // Check slot is within user's meeting window (in user's tz)
+        const slotInUserTz = DateTime.fromObject(
+          { year: dt.year, month: dt.month, day: dt.day, hour: h, minute: m },
+          { zone: userP.tz }
+        );
+        const [ufh, ufm] = userP.windowFrom.split(':').map(Number);
+        const [uth, utm] = userP.windowTo.split(':').map(Number);
+        const userMins = h * 60 + m;
+        const userFromMins = ufh * 60 + ufm;
+        const userToMins   = uth * 60 + utm - 30;
+        if (userMins < userFromMins || userMins > userToMins) return;
+
+        // Check user isn't busy
+        if (busySlots[`0|${dateStr}|${timeStr}`]) return;
+
+        // Check all other participants are available (in their tz, 09:00–18:00)
+        const allAvail = participants.slice(1).every((p, relIdx) => {
+          const pi = relIdx + 1;
+          if (busySlots[`${pi}|${dateStr}|${timeStr}`]) return false;
+          const slotInPTz = slotInUserTz.setZone(p.tz);
+          const pMins = slotInPTz.hour * 60 + slotInPTz.minute;
+          return pMins >= 9 * 60 && pMins <= 18 * 60 - 30;
+        });
+
+        if (!allAvail) return;
+
+        // Score by proximity to midday (in user's tz)
+        const midday = 13 * 60 + 30;
+        const score  = Math.abs(userMins - midday);
+
+        results.push({ dt, dateStr, timeStr, slotInUserTz, score });
+      });
+    });
+
+    if (results.length === 0) {
+      const p = document.createElement('p');
+      p.id = 'results-empty';
+      p.textContent = t('no_slots');
+      p.style.cssText = 'color:var(--text2);text-align:center;padding:24px 0;font-size:.9rem';
+      resultsArea.appendChild(p);
+      return;
+    }
+
+    // Sort by score (closer to midday = better), then date/time
+    results.sort((a, b) => a.score - b.score || a.slotInUserTz - b.slotInUserTz);
+
+    // Show top 10
+    results.slice(0, 10).forEach(({ dt, timeStr, slotInUserTz, score }) => {
+      const months   = t('months');
+      const daysLong = t('days_long');
+      const dayName  = daysLong[dt.weekday - 1];
+      const dateLabel = `${dayName} ${dt.day} ${months[dt.month - 1]}`;
+
+      let badgeClass, badgeText;
+      if (score <= 90)       { badgeClass = 'badge-best'; badgeText = t('badge_best'); }
+      else if (score <= 180) { badgeClass = 'badge-good'; badgeText = t('badge_good'); }
+      else                   { badgeClass = 'badge-ok';   badgeText = t('badge_ok');   }
+
+      // Build time-per-participant strings
+      const timeParts = participants.map((p, i) => {
+        const slotInP = slotInUserTz.setZone(p.tz);
+        const name = p.name || (i === 0 ? t('p0_label') : `${t('participant_label')} ${i + 1}`);
+        const timeFormatted = slotInP.toFormat('HH:mm');
+        const abbr = slotInP.toFormat('ZZZZ');
+        return `${timeFormatted} ${abbr} (${escStr(name)})`;
+      });
+
+      const copyText = `${dateLabel} · ${timeParts.join(' / ')}`;
+
+      const item = document.createElement('div');
+      item.className = 'result-item';
+
+      const info = document.createElement('div');
+      info.className = 'result-info';
+
+      const dayEl = document.createElement('div');
+      dayEl.className = 'result-day';
+      dayEl.textContent = dateLabel;
+      info.appendChild(dayEl);
+
+      const timesEl = document.createElement('div');
+      timesEl.className = 'result-times';
+      timeParts.forEach(part => {
+        const line = document.createElement('div');
+        line.textContent = part;
+        timesEl.appendChild(line);
+      });
+      info.appendChild(timesEl);
+
+      const rightCol = document.createElement('div');
+      rightCol.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:8px';
+
+      const badge = document.createElement('span');
+      badge.className = `badge ${badgeClass}`;
+      badge.textContent = badgeText;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = t('copy');
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(copyText).then(() => {
+          copyBtn.textContent = t('copied');
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.textContent = t('copy');
+            copyBtn.classList.remove('copied');
+          }, 2000);
+        });
+      });
+
+      rightCol.appendChild(badge);
+      rightCol.appendChild(copyBtn);
+
+      item.appendChild(info);
+      item.appendChild(rightCol);
+      resultsArea.appendChild(item);
+    });
+  }
+
+  // ── Tab 2: Convert ───────────────────────────────────────────────────
+  function renderConvertSelects() {
+    const srcSel = document.getElementById('conv-src-tz');
+    const tgtSel = document.getElementById('conv-tgt-tz');
+    populateSelect(srcSel, confirmedTz);
+    populateSelect(tgtSel, confirmedTz);
+    srcSel.addEventListener('change', updateConvert);
+    tgtSel.addEventListener('change', updateConvert);
+  }
+
+  function setConvertDate() {
+    const today = DateTime.now().toISODate();
+    document.getElementById('conv-date').value = today;
+  }
+
+  function updateConvert() {
+    const srcTz  = document.getElementById('conv-src-tz').value;
+    const tgtTz  = document.getElementById('conv-tgt-tz').value;
+    const date   = document.getElementById('conv-date').value;
+    const time   = document.getElementById('conv-time').value;
+    const output = document.getElementById('convert-output');
+    const result = document.getElementById('conv-result');
+    const note   = document.getElementById('conv-note');
+
+    if (!date || !time) { output.style.display = 'none'; return; }
+
+    const [h, m] = time.split(':').map(Number);
+    const [y, mo, d] = date.split('-').map(Number);
+
+    const srcDt = DateTime.fromObject({ year: y, month: mo, day: d, hour: h, minute: m }, { zone: srcTz });
+    if (!srcDt.isValid) { output.style.display = 'none'; return; }
+
+    const tgtDt = srcDt.setZone(tgtTz);
+    const tgtAbbr = tgtDt.toFormat('ZZZZ');
+    result.textContent = `${tgtDt.toFormat('HH:mm')} ${tgtAbbr}`;
+
+    const dayDiff = tgtDt.startOf('day').diff(srcDt.startOf('day'), 'days').days;
+    if (dayDiff > 0)      { note.textContent = t('next_day'); note.style.display = ''; }
+    else if (dayDiff < 0) { note.textContent = t('prev_day'); note.style.display = ''; }
+    else                  { note.textContent = '';             note.style.display = 'none'; }
+
+    output.style.display = 'block';
+  }
+
+  // ── Tabs ─────────────────────────────────────────────────────────────
+  function initTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        document.getElementById(`panel-${target}`).classList.add('active');
+      });
+    });
+  }
+
+  // ── Language toggle ──────────────────────────────────────────────────
+  function initLang() {
+    document.getElementById('lang-toggle').addEventListener('click', () => {
+      lang = lang === 'en' ? 'es' : 'en';
+      document.getElementById('lang-toggle').textContent = lang === 'en' ? 'ES' : 'EN';
+      document.documentElement.lang = lang;
+      applyI18n();
+      renderParticipants();
+      renderGridParticipantTabs();
+      renderGrid();
+    });
+  }
+
+  // ── XSS helper ───────────────────────────────────────────────────────
+  function escStr(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // ── Boot ─────────────────────────────────────────────────────────────
+  function boot() {
+    initTabs();
+    initLang();
+    initModal();
+    // Modal confirm triggers initApp()
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+})();
+</script>
 </body>
 </html>
