@@ -2,7 +2,7 @@
 
 A lightweight, frontend-only tool for scheduling meetings across multiple time zones. No installation, no backend, no data stored anywhere.
 
-**[Open TimeAlign →](https://n0t0ri0us.github.io/time-align/time-align.html)**
+**[Open TimeAlign →](https://n0t0ri0vs.github.io/time-align/time-align.html)**
 
 ## What it does
 
