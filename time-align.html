@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- SECURITY: replace 'unsafe-inline' in script-src with 'sha256-<hash>' of the inline script block before public release. Hash must be recomputed after every edit to the script. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'none'; frame-ancestors 'none'">
+  <meta http-equiv="X-Frame-Options" content="DENY">
   <title>TimeAlign</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
