@@ -184,6 +184,7 @@
     .sched-grid {
       display: grid;
       grid-template-columns: 52px repeat(5, 1fr);
+      grid-auto-rows: 20px;
       min-width: 520px;
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -915,7 +916,7 @@
         const slotInP = slotInUserTz.setZone(p.tz);
         const name = p.name || (i === 0 ? t('p0_label') : `${t('participant_label')} ${i + 1}`);
         const timeFormatted = slotInP.toFormat('HH:mm');
-        const abbr = slotInP.toFormat('ZZZZ');
+        const abbr = tzAbbr(slotInP);
         return `${timeFormatted} ${abbr} (${escStr(name)})`;
       });
 
@@ -1004,13 +1005,14 @@
     if (!srcDt.isValid) { output.style.display = 'none'; return; }
 
     const tgtDt = srcDt.setZone(tgtTz);
-    const tgtAbbr = tgtDt.toFormat('ZZZZ');
+    const tgtAbbr = tzAbbr(tgtDt);
     result.textContent = `${tgtDt.toFormat('HH:mm')} ${tgtAbbr}`;
 
-    const dayDiff = tgtDt.startOf('day').diff(srcDt.startOf('day'), 'days').days;
-    if (dayDiff > 0)      { note.textContent = t('next_day'); note.style.display = ''; }
-    else if (dayDiff < 0) { note.textContent = t('prev_day'); note.style.display = ''; }
-    else                  { note.textContent = '';             note.style.display = 'none'; }
+    const srcDateStr = srcDt.toISODate();
+    const tgtDateStr = tgtDt.toISODate();
+    if (tgtDateStr > srcDateStr)      { note.textContent = t('next_day'); note.style.display = ''; }
+    else if (tgtDateStr < srcDateStr) { note.textContent = t('prev_day'); note.style.display = ''; }
+    else                              { note.textContent = '';             note.style.display = 'none'; }
 
     output.style.display = 'block';
   }
@@ -1043,6 +1045,21 @@
       renderGridParticipantTabs();
       renderGrid();
     });
+  }
+
+  // ── Timezone abbreviation helper ─────────────────────────────────────
+  function tzAbbr(dt) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: dt.zoneName,
+        timeZoneName: 'short',
+        year: 'numeric',
+      }).formatToParts(new Date(dt.toMillis()));
+      const part = parts.find(p => p.type === 'timeZoneName');
+      return part ? part.value : dt.toFormat('ZZZ');
+    } catch (e) {
+      return dt.toFormat('ZZZ');
+    }
   }
 
   // ── XSS helper ───────────────────────────────────────────────────────
