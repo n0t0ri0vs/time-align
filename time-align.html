@@ -219,6 +219,8 @@
     .slot.busy-2 { background: rgba(52,211,153,.45); }
     .slot.busy-3 { background: rgba(251,191,36,.45); }
     .slot.half-hour { border-bottom-color: rgba(46,50,80,.7); }
+    .slot.busy { display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,.75); letter-spacing: .02em; }
 
     /* ── Slot tooltip ── */
     #slot-tooltip {
@@ -834,7 +836,8 @@
               break;
             }
           }
-          cell.className = 'slot' + (busyClass ? ` ${busyClass}` : '');
+          cell.className = 'slot' + (busyClass ? ` ${busyClass} busy` : '');
+          if (busyClass) cell.textContent = 'Busy';
           if (ti % 2 !== 0) cell.classList.add('half-hour');
 
           cell.addEventListener('mousedown', e => {
